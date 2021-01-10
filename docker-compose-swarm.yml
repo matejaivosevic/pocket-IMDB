@@ -1,0 +1,79 @@
+version: '3'
+services:
+  db:
+    image: mysql:5.7
+    deploy:
+      restart_policy:
+        condition: any
+    environment:
+      MYSQL_DATABASE: database
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./mysql/override.cnf:/etc/mysql/conf.d/override.cnf
+
+  static:
+    image: static-image
+    deploy:
+      restart_policy:
+        condition: any
+    ports:
+      - 8000:80
+    volumes:
+      - static-files:/app/static
+
+  manage:
+    image: test
+    deploy:
+      restart_policy:
+        condition: none
+    env_file: .env
+    entrypoint: /entrypoint-manage.sh
+    volumes:
+      - ./.env:/app/.env
+      - static-files:/app/static
+      - media-files:/app/media
+
+  web:
+    image: test
+    deploy:
+      mode: replicated
+      replicas: 2
+      restart_policy:
+        condition: any
+    env_file: .env
+    command: sh /entrypoint-web.sh
+    ports:
+      - 8001:8000
+    volumes:
+      - ./.env:/app/src/.env
+      - static-files:/app/static
+
+  queue:
+    image: test
+    deploy:
+      restart_policy:
+        condition: any
+    env_file: .env
+    command: sh /entrypoint-queue.sh
+    volumes:
+      - ./.env:/app/.env
+      - static-files:/app/static
+
+  beat:
+    image: test
+    deploy:
+      restart_policy:
+        condition: any
+    env_file: .env
+    command: sh /entrypoint-beat.sh
+    volumes:
+      - ./.env:/app/.env
+      - static-files:/app/static
+
+volumes:
+  db-data:
+  static-files:
+
