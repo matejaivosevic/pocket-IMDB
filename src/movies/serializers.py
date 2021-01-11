@@ -19,6 +19,24 @@ class MovieSerializer(serializers.ModelSerializer):
 
     num_of_dislikes = serializers.SerializerMethodField()
 
+    current_user_liked = serializers.SerializerMethodField()
+
+    current_user_disliked = serializers.SerializerMethodField()
+
+    def get_current_user_liked(self, obj):
+        request = self.context.get('user_id', None)
+        userLiked = obj.likes.filter(user_id=request, status=1)
+        if userLiked:
+            return True
+        return False
+
+    def get_current_user_disliked(self, obj):
+        request = self.context.get('user_id', None)
+        userDisliked = obj.likes.filter(user_id=request, status=0)
+        if userDisliked:
+            return True
+        return False
+
     def get_num_of_likes(self, obj):
         return obj.likes.filter(status=1).count()
 
@@ -35,7 +53,9 @@ class MovieSerializer(serializers.ModelSerializer):
             'visit_count',
             'genre',
             'num_of_likes',
-            'num_of_dislikes'
+            'num_of_dislikes',
+            'current_user_liked',
+            'current_user_disliked'
         )
 
 class CreateMovieSerializer(serializers.ModelSerializer):
@@ -55,3 +75,4 @@ class CreateMovieSerializer(serializers.ModelSerializer):
             'visit_count',
             'genre_id'
         )
+

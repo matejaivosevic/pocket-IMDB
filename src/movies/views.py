@@ -18,6 +18,7 @@ from itertools import chain
 from django.db import connection
 from django.db.models import Prefetch
 from django.core.paginator import Paginator
+from src.users.serializers import UserSerializer
 
 
 class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
@@ -67,8 +68,9 @@ class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
     @action(detail=False, methods=['get'], url_path='movies', url_name='movies')
     def get_movies(self, instance):
         try:
+            user_id = UserSerializer(self.request.user, context={'request': self.request}).data["id"]
             queryset = Movie.objects.all()
-            serializer = MovieSerializer(queryset, many=True)
+            serializer = MovieSerializer(queryset, context={'user_id': user_id}, many=True)
             length = len(list(serializer.data))
             paginator = Paginator(serializer.data, 10)
             page_number = self.request.GET.get("page")
@@ -80,8 +82,9 @@ class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
     @action(detail=False, methods=['get'], url_path='movies-by-title', url_name='movies-by-title')
     def get_movies_by_title(self, instance):
         try:
+            user_id = UserSerializer(self.request.user, context={'request': self.request}).data["id"]
             queryset = Movie.objects.filter(title__icontains=self.request.GET.get("title"))
-            serializer = MovieSerializer(queryset, many=True)
+            serializer = MovieSerializer(queryset, context={'user_id': user_id}, many=True)
             length = len(list(serializer.data))
             paginator = Paginator(serializer.data, 10)
             page_number = self.request.GET.get("page")
@@ -93,8 +96,9 @@ class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
     @action(detail=False, methods=['get'], url_path='movie', url_name='movie')
     def get_movie(self, instance):
         try:
+            user_id = UserSerializer(self.request.user, context={'request': self.request}).data["id"]
             queryset = Movie.objects.filter(id=self.request.GET.get("id"))
-            serializer = MovieSerializer(queryset, many=True)
+            serializer = MovieSerializer(queryset, context={'user_id': user_id}, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': 'Get movie error  ' + e}, status=status.HTTP_400_BAD_REQUEST)
@@ -111,22 +115,22 @@ class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
     @action(detail=False, methods=['put'], url_path='like', url_name='like')
     def like_movie(self, instance):
         try:
+            user_id = UserSerializer(self.request.user, context={'request': self.request}).data["id"]
             data = self.request.data
             movie_id = data['movie_id']
-            user_id = data['user_id']
             stat = data['status']
             try:
                 likeExists = Likes.objects.get(movie_id=movie_id, user_id=user_id, status=stat)
                 if likeExists:
                     likeExists.delete()
                 queryset = Movie.objects.filter(id=movie_id)
-                serializer = MovieSerializer(queryset, many=True, )
+                serializer = MovieSerializer(queryset, context={'user_id': user_id}, many=True)
                 return Response(serializer.data, status=status.HTTP_200_OK)
             except Exception:
                 pass
             Likes.objects.create(movie_id=movie_id, user_id=user_id, status=stat)
             queryset = Movie.objects.filter(id=movie_id)
-            serializer = MovieSerializer(queryset, many=True)
+            serializer = MovieSerializer(queryset, context={'user_id': user_id}, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': 'Like movie error ' + e}, status=status.HTTP_400_BAD_REQUEST)
