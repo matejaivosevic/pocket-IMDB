@@ -17,8 +17,13 @@ class MovieSerializer(serializers.ModelSerializer):
 
     num_of_likes = serializers.SerializerMethodField()
 
+    num_of_dislikes = serializers.SerializerMethodField()
+
     def get_num_of_likes(self, obj):
-        return obj.likes.count()
+        return obj.likes.filter(status=1).count()
+
+    def get_num_of_dislikes(self, obj):
+        return obj.likes.filter(status=0).count()
 
     class Meta:
         model = Movie
@@ -29,7 +34,8 @@ class MovieSerializer(serializers.ModelSerializer):
             'image_url',
             'visit_count',
             'genre',
-            'num_of_likes'
+            'num_of_likes',
+            'num_of_dislikes'
         )
 
 class CreateMovieSerializer(serializers.ModelSerializer):

@@ -77,6 +77,19 @@ class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
         except Exception as e:
             return Response({'error': 'Get movies  error  ' + e}, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['get'], url_path='movies-by-title', url_name='movies-by-title')
+    def get_movies_by_title(self, instance):
+        try:
+            queryset = Movie.objects.filter(title__icontains=self.request.GET.get("title"))
+            serializer = MovieSerializer(queryset, many=True)
+            length = len(list(serializer.data))
+            paginator = Paginator(serializer.data, 10)
+            page_number = self.request.GET.get("page")
+            page_obj = paginator.page(page_number)
+            return Response({"data": list(page_obj), "length": length}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': 'Get movies  error  ' + e}, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=False, methods=['get'], url_path='movie', url_name='movie')
     def get_movie(self, instance):
         try:
@@ -101,18 +114,18 @@ class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
             data = self.request.data
             movie_id = data['movie_id']
             user_id = data['user_id']
-            status = data['status']
+            stat = data['status']
             try:
-                likeExists = Likes.objects.get(movie_id=movie_id, user_id=user_id)
+                likeExists = Likes.objects.get(movie_id=movie_id, user_id=user_id, status=stat)
                 if likeExists:
                     likeExists.delete()
-                queryset = Movie.objects.all()
-                serializer = MovieSerializer(queryset, many=True)
+                queryset = Movie.objects.filter(id=movie_id)
+                serializer = MovieSerializer(queryset, many=True, )
                 return Response(serializer.data, status=status.HTTP_200_OK)
             except Exception:
                 pass
-            Likes.objects.create(movie_id=movie_id, user_id=user_id, status=1)
-            queryset = Movie.objects.all()
+            Likes.objects.create(movie_id=movie_id, user_id=user_id, status=stat)
+            queryset = Movie.objects.filter(id=movie_id)
             serializer = MovieSerializer(queryset, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:

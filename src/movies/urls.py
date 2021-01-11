@@ -4,6 +4,7 @@ from . import views
 
 urlpatterns = [
     path('movies', views.MovieViewSet.as_view({'get': 'get_movies'}), name='movies'),
+    path('movies-by-title', views.MovieViewSet.as_view({'get': 'get_movies_by_title'}), name='movies-by-title'),
     path('movie', views.MovieViewSet.as_view({'get': 'get_movie'}), name='movie'),
     path('genres', views.MovieViewSet.as_view({'get': 'get_genres'}), name='genres'),
     path('create-movie', views.MovieViewSet.as_view({'post': 'create_movie'}), name='create-movie'),

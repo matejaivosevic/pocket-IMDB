@@ -18,5 +18,5 @@ class Movie(models.Model):
 
 class Likes(models.Model):
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name="likes")
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user")
     status = BitField(flags=(0, 1))
