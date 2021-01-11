@@ -1,6 +1,6 @@
 from rest_framework import serializers
-
-from src.movies.models import Movie, Genre
+from src.users.serializers import UserSerializer
+from src.movies.models import Movie, Genre, Comment
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
@@ -76,3 +76,14 @@ class CreateMovieSerializer(serializers.ModelSerializer):
             'genre_id'
         )
 
+class CommentSerializer(serializers.ModelSerializer):
+    user = UserSerializer(many=False, read_only=True)
+
+    class Meta:
+        model = Comment
+        fields = (
+            'user',
+            'content',
+            'movie_id',
+            'timestamp'
+        )
