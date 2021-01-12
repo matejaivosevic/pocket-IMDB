@@ -50,8 +50,8 @@ class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
             movie = self.request.data
             title = movie['title']
             description = movie['description']
-            image_url = movie['image_url']
-            genre_id = movie['genre_id']
+            image_url = movie['imageUrl']
+            genre_id = movie['genreId']
             Movie.objects.create(title=title, description=description, image_url=image_url, visit_count=0, genre_id=genre_id)
             return Response(list(Movie.objects.filter().values()), status=status.HTTP_200_OK)
         except Exception as e:
@@ -129,6 +129,15 @@ class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
         except Exception as e:
             return Response({'error': 'Get movies  error  ' + e}, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['get'], url_path='related', url_name='related')
+    def get_related(self, instance):
+        try:
+            genre_id = self.request.GET.get('id')
+            related = Movie.objects.filter(genre_id=genre_id).values()[:10]
+            return Response(related, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': 'Get movies  error  ' + e}, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=False, methods=['get'], url_path='movies', url_name='movies')
     def get_movies(self, instance):
         try:
@@ -195,8 +204,9 @@ class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
     @action(detail=False, methods=['get'], url_path='movie', url_name='movie')
     def get_movie(self, instance):
         try:
+            movie_id = self.request.GET.get("id")
             user_id = UserSerializer(self.request.user, context={'request': self.request}).data["id"]
-            comments = Comment.objects.filter(movie_id=self.request.GET.get("id"))
+            comments = Comment.objects.filter(movie_id)
             comSerializer = CommentSerializer(comments, many=True)
             queryset = Movie.objects.filter(id=self.request.GET.get("id"))
             serializer = MovieSerializer(queryset, context={'user_id': user_id}, many=True)
