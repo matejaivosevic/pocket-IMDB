@@ -9,8 +9,8 @@ from rest_framework.decorators import api_view, permission_classes, renderer_cla
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework.generics import RetrieveAPIView
-from src.movies.serializers import MovieSerializer, CreateMovieSerializer, CommentSerializer
-from src.movies.models import Movie, Genre, Likes, Comment
+from src.movies.serializers import MovieSerializer, CreateMovieSerializer, CommentSerializer, WatchListSerializer
+from src.movies.models import Movie, Genre, Likes, Comment, WatchList
 from django.core import serializers
 from rest_framework import status
 from django.conf import settings
@@ -20,6 +20,7 @@ from django.db.models import Prefetch
 from django.core.paginator import Paginator
 from src.users.serializers import UserSerializer
 import datetime
+import operator
 
 
 class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
@@ -98,6 +99,36 @@ class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
         except Exception as e:
             return Response({'error': 'Create genre error ' + e}, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['put'], url_path='watch', url_name='watch')
+    def watch_list_action(self, instance):
+        try:
+            data = self.request.data
+            movie_id = data['movie_id']
+            user_id = UserSerializer(self.request.user, context={'request': self.request}).data["id"]
+
+            try:
+                dataExists = WatchList.objects.filter(movie_id=movie_id, user_id=user_id)
+                if dataExists:
+                    dataExists.delete()
+                    return Response({"data": False, "id": movie_id}, status=status.HTTP_200_OK)
+            except Exception:
+                pass
+
+            WatchList.objects.create(movie_id=movie_id, user_id=user_id)
+            return Response({"data": True, "id": movie_id}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': 'Create genre error ' + e}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'], url_path='watch-list', url_name='watch-list')
+    def get_watch_list(self, instance):
+        try:
+            user_id = UserSerializer(self.request.user, context={'request': self.request}).data["id"]
+            watch_list = WatchList.objects.filter(user_id=user_id)
+            serializer = WatchListSerializer(watch_list, context={'user_id': user_id}, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': 'Get movies  error  ' + e}, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=False, methods=['get'], url_path='movies', url_name='movies')
     def get_movies(self, instance):
         try:
@@ -109,7 +140,21 @@ class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
             paginator = Paginator(serializer.data, 10)
             page_number = self.request.GET.get("page")
             page_obj = paginator.page(page_number)
-            return Response({"data": list(page_obj), "length": length, "genres": genres}, status=status.HTTP_200_OK)
+            popular = serializer.data
+            popular.sort(reverse=True, key=lambda e: e['num_of_likes'])
+            return Response({"data": list(page_obj), "length": length, "genres": genres, "popular": popular[:10]}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': 'Get movies  error  ' + e}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'], url_path='popular', url_name='popular')
+    def get_popular(self, instance):
+        try:
+            user_id = UserSerializer(self.request.user, context={'request': self.request}).data["id"]
+            queryset = Movie.objects.all()
+            serializer = MovieSerializer(queryset, context={'user_id': user_id}, many=True)
+            lista = serializer.data
+            lista.sort(reverse=True, key=lambda e: e['num_of_likes'])
+            return Response(lista[:10], status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': 'Get movies  error  ' + e}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -124,7 +169,9 @@ class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
             paginator = Paginator(serializer.data, 10)
             page_number = self.request.GET.get("page")
             page_obj = paginator.page(page_number)
-            return Response({"data": list(page_obj), "length": length, "genres": genres}, status=status.HTTP_200_OK)
+            popular = serializer.data
+            popular.sort(reverse=True, key=lambda e: e['num_of_likes'])
+            return Response({"data": list(page_obj), "length": length, "genres": genres, "popular": popular[:10]}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': 'Get movies  error  ' + e}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -139,7 +186,9 @@ class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
             paginator = Paginator(serializer.data, 10)
             page_number = self.request.GET.get("page")
             page_obj = paginator.page(page_number)
-            return Response({"data": list(page_obj), "length": length, "genres": genres}, status=status.HTTP_200_OK)
+            popular = serializer.data
+            popular.sort(reverse=True, key=lambda e: e['num_of_likes'])
+            return Response({"data": list(page_obj), "length": length, "genres": genres, "popular": popular[:10]}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': 'Get movies  error  ' + e}, status=status.HTTP_400_BAD_REQUEST)
 
