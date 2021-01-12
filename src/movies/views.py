@@ -9,8 +9,8 @@ from rest_framework.decorators import api_view, permission_classes, renderer_cla
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from rest_framework.generics import RetrieveAPIView
-from src.movies.serializers import MovieSerializer, CreateMovieSerializer
-from src.movies.models import Movie, Genre, Likes
+from src.movies.serializers import MovieSerializer, CreateMovieSerializer, CommentSerializer
+from src.movies.models import Movie, Genre, Likes, Comment
 from django.core import serializers
 from rest_framework import status
 from django.conf import settings
@@ -19,6 +19,7 @@ from django.db import connection
 from django.db.models import Prefetch
 from django.core.paginator import Paginator
 from src.users.serializers import UserSerializer
+import datetime
 
 
 class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
@@ -55,6 +56,21 @@ class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
         except Exception as e:
             return Response({'error': 'Create movie error ' + e}, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['post'], url_path='create-comment', url_name='create-comment')
+    def create_comment(self, instance):
+        try:
+            user_id = UserSerializer(self.request.user, context={'request': self.request}).data["id"]
+            comment = self.request.data
+            content = comment['content']
+            movie_id = comment['movie_id']
+            timestamp = datetime.datetime.now()
+            Comment.objects.create(content=content, movie_id=movie_id, timestamp=timestamp, user_id=user_id)
+            comments = Comment.objects.filter(movie_id=movie_id, user_id=user_id, timestamp=timestamp, content=content)
+            comSerializer = CommentSerializer(comments, many=True)
+            return Response(comSerializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': 'Create movie error ' + e}, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=False, methods=['patch'], url_path='visit-movie', url_name='visit-movie')
     def visit_movie(self, instance):
         try:
@@ -64,8 +80,11 @@ class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
             movie.save()
             user_id = UserSerializer(self.request.user, context={'request': self.request}).data["id"]
             queryset = Movie.objects.filter(id=movie_id)
+            comments = Comment.objects.filter(movie_id=self.request.GET.get("id"))
+            comSerializer = CommentSerializer(comments, many=True)
             serializer = MovieSerializer(queryset, context={'user_id': user_id}, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            comSerializer.data.sort(reverse=True, key=lambda e: e['timestamp'])
+            return Response({"data": serializer.data, "comments": comSerializer.data[::-1][:10]}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': 'Create movie error ' + e}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -128,9 +147,22 @@ class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
     def get_movie(self, instance):
         try:
             user_id = UserSerializer(self.request.user, context={'request': self.request}).data["id"]
+            comments = Comment.objects.filter(movie_id=self.request.GET.get("id"))
+            comSerializer = CommentSerializer(comments, many=True)
             queryset = Movie.objects.filter(id=self.request.GET.get("id"))
             serializer = MovieSerializer(queryset, context={'user_id': user_id}, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            comSerializer.data.sort(reverse=True, key=lambda e: e['timestamp'])
+            return Response({"data": serializer.data, "comments": comSerializer.data[::-1][:10]}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': 'Get movie error  ' + e}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'], url_path='movie-comments', url_name='movie-comments')
+    def get_movie_comments(self, instance):
+        try:
+            comments = Comment.objects.filter(movie_id=self.request.GET.get("id"))
+            comSerializer = CommentSerializer(comments, many=True)
+            comSerializer.data.sort(reverse=True, key=lambda e: e['timestamp'])
+            return Response(comSerializer.data[::-1], status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': 'Get movie error  ' + e}, status=status.HTTP_400_BAD_REQUEST)
 

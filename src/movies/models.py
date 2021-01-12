@@ -18,5 +18,11 @@ class Movie(models.Model):
 
 class Likes(models.Model):
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name="likes")
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user")
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     status = BitField(flags=(0, 1))
+
+class Comment(models.Model):
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name="comments")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user")
+    content = models.CharField(max_length=500, null=False)
+    timestamp = models.DateTimeField()
