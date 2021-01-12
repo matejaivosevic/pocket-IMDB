@@ -26,3 +26,7 @@ class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user")
     content = models.CharField(max_length=500, null=False)
     timestamp = models.DateTimeField()
+
+class WatchList(models.Model):
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name="watch")
+    user = models.ForeignKey(User, on_delete=models.CASCADE)

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from src.users.serializers import UserSerializer
-from src.movies.models import Movie, Genre, Comment
+from src.movies.models import Movie, Genre, Comment, WatchList
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
@@ -22,6 +22,15 @@ class MovieSerializer(serializers.ModelSerializer):
     current_user_liked = serializers.SerializerMethodField()
 
     current_user_disliked = serializers.SerializerMethodField()
+
+    is_in_watch_list = serializers.SerializerMethodField()
+
+    def get_is_in_watch_list(self, obj):
+        request = self.context.get('user_id', None)
+        inWatchList = obj.watch.filter(user_id=request)
+        if inWatchList:
+            return True
+        return False
 
     def get_current_user_liked(self, obj):
         request = self.context.get('user_id', None)
@@ -55,7 +64,8 @@ class MovieSerializer(serializers.ModelSerializer):
             'num_of_likes',
             'num_of_dislikes',
             'current_user_liked',
-            'current_user_disliked'
+            'current_user_disliked',
+            'is_in_watch_list'
         )
 
 class CreateMovieSerializer(serializers.ModelSerializer):
@@ -86,4 +96,20 @@ class CommentSerializer(serializers.ModelSerializer):
             'content',
             'movie_id',
             'timestamp'
+        )
+
+class WatchListSerializer(serializers.ModelSerializer):
+    user_id = serializers.SerializerMethodField()
+
+    def get_user_id(self, obj):
+        return self.context.get('user_id', None)
+
+    movie = MovieSerializer(many=False, context={'user_id': user_id}, read_only=True)
+
+    class Meta:
+        model = WatchList
+        fields = (
+            'movie',
+            'movie_id',
+            'user_id'
         )
