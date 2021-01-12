@@ -50,8 +50,8 @@ class MovieViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
             movie = self.request.data
             title = movie['title']
             description = movie['description']
-            image_url = movie['image_url']
-            genre_id = movie['genre_id']
+            image_url = movie['imageUrl']
+            genre_id = movie['genreId']
             Movie.objects.create(title=title, description=description, image_url=image_url, visit_count=0, genre_id=genre_id)
             return Response(list(Movie.objects.filter().values()), status=status.HTTP_200_OK)
         except Exception as e:
